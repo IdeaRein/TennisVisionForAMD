@@ -4,7 +4,7 @@ import cv2
 import time
 
 # モデル読み込み（AMD GPU用）
-session = ort.InferenceSession("E:/TennisVision/yolov8-onnx-env/yolov8m.onnx", providers=['DmlExecutionProvider'])
+session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/Models/yolov8x.onnx", providers=['DmlExecutionProvider'])
 
 # 動画読み込み
 video_path = "Datas/sample.mov"
