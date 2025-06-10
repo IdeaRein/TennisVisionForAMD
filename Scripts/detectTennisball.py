@@ -4,14 +4,20 @@ import cv2
 import time
 
 # モデル読み込み（AMD GPU用）
-session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/Models/yolov8x.onnx", providers=['DmlExecutionProvider'])
+# session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/Models/yolov8x.onnx", providers=['DmlExecutionProvider'])
+session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/LeaeningModels/best_train7.onnx", providers=['DmlExecutionProvider'])
+
+# GPU利用状況を確認
+print("Available providers:", ort.get_available_providers())
+print("Current session providers:", session.get_providers())
 
 # 動画読み込み
-video_path = "Datas/sample.mov"
+video_path = "Datas/tennis_sample3.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # クラス名（テニスボールのみ）
-CLASS_NAMES = {32: 'sports ball'}
+# CLASS_NAMES = {32: 'sports ball'} #モデルがyolov8の場合
+CLASS_NAMES = {0: 'tennisball'}  #ファインチューニングした場合
 
 # 閾値設定
 CONF_THRESH = 0.3
@@ -48,6 +54,7 @@ while cap.isOpened():
         class_scores = pred[4:]
         class_id = np.argmax(class_scores)
         confidence = class_scores[class_id]
+        # print(f"Detected class_id: {class_id}, confidence: {confidence:.2f}")
 
         if confidence > CONF_THRESH and class_id == 32:  # 🎯 テニスボールのみ検出
             cx, cy, w_box, h_box = pred[0:4]
