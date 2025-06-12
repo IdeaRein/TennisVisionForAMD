@@ -17,7 +17,6 @@ from utils.preproc import preprocess_frame
 from utils.postproc import nms, scale_coords
 
 
-
 def main():
     cap = cv2.VideoCapture(VIDEO_PATH)
     detector = BallDetector()
@@ -40,6 +39,9 @@ def main():
         h, w = frame.shape[:2]
         boxes, confidences, class_ids = [], [], []
 
+        # ここで毎フレームコピーを作る
+        frame_draw = frame.copy()
+
         for pred in preds:
             class_scores = pred[4:]
             class_id = class_scores.argmax()
@@ -61,17 +63,17 @@ def main():
 
             label = CLASS_NAMES.get(class_ids[i], str(class_ids[i]))
             conf = confidences[i]
-            cv2.rectangle(frame, (x, y), (x + box_w, y + box_h), (0, 255, 255), 2)
-            cv2.putText(frame, f'{label} {conf:.2f}', (x, y - 5),
+            cv2.rectangle(frame_draw, (x, y), (x + box_w, y + box_h), (0, 255, 255), 2)
+            cv2.putText(frame_draw, f'{label} {conf:.2f}', (x, y - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-        tracker.draw(frame)
+        tracker.draw(frame_draw)
 
         fps = 1 / (end - start)
-        cv2.putText(frame, f'FPS: {fps:.2f}', (20, 30),
+        cv2.putText(frame_draw, f'FPS: {fps:.2f}', (20, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-        cv2.imshow("Ball Detection & Tracking", frame)
+        cv2.imshow("Ball Detection & Tracking", frame_draw)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
