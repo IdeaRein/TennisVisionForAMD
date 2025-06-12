@@ -1,0 +1,8 @@
+TennisVision/
+├── main.py                      # 実行スクリプト（メイン処理）
+├── config.py                    # 設定（パス・定数）
+├── detector.py                 # モデル読み込みと推論処理
+├── tracker.py                  # ボールの軌跡保存と描画
+├── utils/
+│   ├── preproc.py              # 前処理（リサイズ、正規化など）
+│   └── postproc.py             # 後処理（NMS、bbox変換など）
