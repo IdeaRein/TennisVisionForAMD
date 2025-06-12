@@ -1,0 +1,12 @@
+train: E:\TennisVision\TennisVisionForAMD\Datasets\tennis_train\train\images
+val: E:\TennisVision\TennisVisionForAMD\Datasets\tennis_train\valid\images
+
+nc: 1
+names: ['tennisBall']
+
+roboflow:
+  workspace: tennis-ball-detection-nlans
+  project: my-first-project-uvdn1
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/tennis-ball-detection-nlans/my-first-project-uvdn1/dataset/3
