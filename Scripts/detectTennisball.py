@@ -4,8 +4,10 @@ import cv2
 import time
 
 # モデル読み込み（AMD GPU用）
-# session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/Models/yolov8x.onnx", providers=['DmlExecutionProvider'])
-session = ort.InferenceSession("E:/TennisVision/TennisVisionForAMD/LeaeningModels/best_train7.onnx", providers=['DmlExecutionProvider'])
+session = ort.InferenceSession(
+    "E:/TennisVision/TennisVisionForAMD/LeaeningModels/best.onnx",
+    providers=['DmlExecutionProvider']
+)
 
 # GPU利用状況を確認
 print("Available providers:", ort.get_available_providers())
@@ -16,8 +18,7 @@ video_path = "Datas/tennis_sample3.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # クラス名（テニスボールのみ）
-# CLASS_NAMES = {32: 'sports ball'} #モデルがyolov8の場合
-CLASS_NAMES = {0: 'tennisball'}  #ファインチューニングした場合
+CLASS_NAMES = {0: 'tennisball'}
 
 # 閾値設定
 CONF_THRESH = 0.3
@@ -27,12 +28,17 @@ def nms(boxes, scores, iou_threshold=0.5):
     indices = cv2.dnn.NMSBoxes(boxes, scores, CONF_THRESH, iou_threshold)
     return indices.flatten() if len(indices) > 0 else []
 
+# 軌跡記録用
+ball_positions = []
+frame_idx = 0
+
 # メインループ
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
+    frame_idx += 1
     h, w = frame.shape[:2]
 
     # 前処理
@@ -44,19 +50,16 @@ while cap.isOpened():
     output = session.run(None, {session.get_inputs()[0].name: img_input})[0]
     end = time.time()
 
-    preds = np.squeeze(output).T  # shape: (8400, 84)
+    preds = np.squeeze(output).T  # shape: (8400, num_classes + 4)
 
-    boxes = []
-    confidences = []
-    class_ids = []
+    boxes, confidences, class_ids = [], [], []
 
     for pred in preds:
         class_scores = pred[4:]
         class_id = np.argmax(class_scores)
         confidence = class_scores[class_id]
-        # print(f"Detected class_id: {class_id}, confidence: {confidence:.2f}")
 
-        if confidence > CONF_THRESH and class_id == 32:  # 🎯 テニスボールのみ検出
+        if confidence > CONF_THRESH and class_id == 0:  # 🎯 テニスボールのみ検出
             cx, cy, w_box, h_box = pred[0:4]
             x1 = int((cx - w_box / 2) * w / 640)
             y1 = int((cy - h_box / 2) * h / 640)
@@ -69,27 +72,35 @@ while cap.isOpened():
     # NMSで重複除去
     indices = nms(boxes, confidences)
 
-    # 結果描画
     for i in indices:
-        box = boxes[i]
-        class_id = class_ids[i]
-        label = CLASS_NAMES.get(class_id, str(class_id))
-        conf = confidences[i]
+        x, y, w_box, h_box = boxes[i]
+        center_x = x + w_box // 2
+        center_y = y + h_box // 2
+        ball_positions.append((frame_idx, center_x, center_y))
 
-        x, y, w_box, h_box = box
+        label = CLASS_NAMES.get(class_ids[i], str(class_ids[i]))
+        conf = confidences[i]
         cv2.rectangle(frame, (x, y), (x + w_box, y + h_box), (0, 255, 255), 2)
         cv2.putText(frame, f'{label} {conf:.2f}', (x, y - 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-    # FPS表示（任意）
+    # 軌跡の描画
+    for i in range(1, len(ball_positions)):
+        _, x1, y1 = ball_positions[i - 1]
+        _, x2, y2 = ball_positions[i]
+        cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+    # FPS表示
     fps = 1 / (end - start)
     cv2.putText(frame, f'FPS: {fps:.2f}', (20, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-    cv2.imshow("Ball Detection Only", frame)
+    # ウィンドウ表示
+    cv2.imshow("Ball Detection & Tracking", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+# 終了処理
 cap.release()
 cv2.destroyAllWindows()
